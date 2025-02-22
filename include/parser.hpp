@@ -146,12 +146,11 @@ namespace sl
 
     class Expression : public Statement
     {
-    private:
-        std::string getAsm();
     public:
         Expression(std::span<Token> tokens);
         static bool isValid(std::span<Token> tokens);
         static bool isValid(std::span<Token> tokens, std::span<std::string> identifiers);
+        std::string getAsm();
     };
 
     class VarDecStatement : public Statement
@@ -161,6 +160,7 @@ namespace sl
 
     public:
         VarDecStatement(const std::string identName, std::span<Token> tokens);
+        std::string getAsm();
     };
 
     class VarAssignStatement : public Statement
@@ -171,6 +171,7 @@ namespace sl
 
     public:
         VarAssignStatement(const std::string identName, std::span<Token> tokens, Expression expr);
+        std::string getAsm();
     };
 
     class IfCondStatement : public Statement

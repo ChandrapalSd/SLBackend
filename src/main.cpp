@@ -22,6 +22,11 @@ int main()
     sl::Program program{ std::span<sl::Token>(tokens) };
     const std::string asm_ = program.getAsm();
     std::cout << asm_;
+
+    std::ofstream myfile;
+    myfile.open("output.asm");
+    myfile << asm_;
+    myfile.close();
     //sl::print(tokens);
 
     return 0;

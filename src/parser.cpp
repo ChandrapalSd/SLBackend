@@ -1,5 +1,7 @@
 #include "parser.hpp"
 #include <cassert>
+#include <format>
+
 /*
 namespace sl
 {
@@ -194,6 +196,57 @@ namespace sl
     {
     }
 
+    std::string VarDecStatement::getAsm()
+    {
+        return std::format("{} = 0\n", identName);
+    }
+    
+    std::string VarAssignStatement::getAsm()
+    {
+        
+        return std::format("{}\nsta %{}\n", expr.getAsm(), identName);
+    }
+    
+    std::string Expression::getAsm()
+    {
+        bool calcReq = false;
+        std::string operation = "";
+        for (const Token& t : tokens)
+        {
+            if(t.type == TokenType::NUMBER){
+                resultedAsm += std::format("ldi {} {}", calcReq ? 'B' : 'A', t.text);
+                if (resultedAsm.length() > 0) {
+                    resultedAsm += "\n" + operation;
+                    operation = "";
+                }
+            }
+            else if(t.type == TokenType::IDENTIFIER){
+                resultedAsm += std::format("mov {} M %{}", calcReq ? 'B' : 'A', t.text);
+                if (resultedAsm.length() > 0) {
+                    resultedAsm += "\n" + operation;
+                    operation = "";
+                }
+            }
+            else if(t.type == TokenType::BinaryOperator){
+                if(t.text == "=="){
+                    operation = "call %eqeq";
+                }
+                else {
+                    operation = t.text == "+" ? "add" : "sub";
+                }
+            }
+            else
+            {
+                assert(false);
+            }
+
+            resultedAsm += '\n';
+            calcReq = true;
+        }
+
+        return resultedAsm;
+    }
+
     VarAssignStatement::VarAssignStatement(const std::string identName, std::span<Token> tokens, Expression expr)
         : Statement(Type::VarAssign, tokens), identName(identName), expr(expr)
     {
@@ -289,6 +342,44 @@ namespace sl
     {
         parse();
         print();
+
+        std::string textSection = R"(
+.text
+start:
+
+)";
+
+        std::string dataSection = ".data\n\n";
+
+        for (const auto& s : statements)
+        {
+            switch(s->type)
+            {
+            case Statement::Type::VarDec:
+                dataSection += static_cast<VarDecStatement*>(s.get())->getAsm();
+                break;
+            case Statement::Type::VarAssign:
+                textSection += static_cast<VarAssignStatement*>(s.get())->getAsm();
+                break;
+            }
+
+        }
+
+        textSection += R"(
+hlt
+
+eqeq:
+    cmp
+    je %eqeqeq
+    ldi A 0
+    ret
+eqeqeq:
+    ldi A 1
+    ret
+)";
+
+        resultedAsm = textSection + dataSection;
+
         return resultedAsm;
     }
 
@@ -325,13 +416,6 @@ namespace sl
     std::vector<std::unique_ptr<Statement>>&& Program::moveOutStatements()
     {
         return std::move(statements);
-    }
-
-    std::string Expression::getAsm()
-    {
-        assert(false && "Not Implemented");
-
-        return std::string();
     }
 
     Expression::Expression(std::span<Token> tokens)
