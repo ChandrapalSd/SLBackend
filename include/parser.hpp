@@ -1,7 +1,10 @@
 #pragma once
 #include "tokenizer.hpp"
 #include <memory>
+#include <span>
+#include <expected>
 
+/*
 namespace sl
 {
 
@@ -113,3 +116,106 @@ namespace sl
     std::ostream &operator<<(std::ostream &, const NumericLiteral &);
 
 }
+
+*/
+
+namespace sl
+{
+
+    class Statement
+    {
+    public:
+        enum class Type
+        {
+            VarDec,
+            VarAssign,
+            IfCond,
+            IfBlock,
+            Expr
+        };
+
+    public:
+        Type type;
+        std::span<Token> tokens;
+        std::string resultedAsm;
+
+    public:
+        Statement(Type type, std::span<Token> tokens);
+        static Type getType(std::span<Token> tokens);
+    };
+
+    class Expression : public Statement
+    {
+    private:
+        std::string getAsm();
+    public:
+        Expression(std::span<Token> tokens);
+        static bool isValid(std::span<Token> tokens);
+        static bool isValid(std::span<Token> tokens, std::span<std::string> identifiers);
+    };
+
+    class VarDecStatement : public Statement
+    {
+    public:
+        const std::string identName;
+
+    public:
+        VarDecStatement(const std::string identName, std::span<Token> tokens);
+    };
+
+    class VarAssignStatement : public Statement
+    {
+    public:
+        const std::string identName;
+        Expression expr;
+
+    public:
+        VarAssignStatement(const std::string identName, std::span<Token> tokens, Expression expr);
+    };
+
+    class IfCondStatement : public Statement
+    {
+    public:
+        const uint32_t id;
+        Expression expr;
+
+    public:
+        IfCondStatement(const uint32_t id, std::span<Token> tokens, Expression expr);
+    };
+
+    class IfBlockStatement : public Statement
+    {
+    public:
+        const uint32_t id;
+        std::vector< std::unique_ptr<Statement>> body;
+
+    public:
+        IfBlockStatement(const uint32_t id, std::span<Token> tokens, std::vector< std::unique_ptr<Statement>>&& body);
+    };
+
+    class Program
+    {
+    private:
+        std::span<Token> tokens;
+        std::vector<std::unique_ptr<Statement>> statements;
+        uint32_t identCount = 0;
+        uint32_t ifCount = 0;
+        std::string resultedAsm;
+
+    private:
+        void parse();
+
+    public:
+        Program(std::span<Token> tokens, uint32_t ifCountStart = 0);
+        std::string getAsm();
+        void print();
+        std::vector<std::unique_ptr<Statement>>&& moveOutStatements();
+    };
+
+
+    std::ostream& operator<<(std::ostream& os, const VarDecStatement& s);
+    std::ostream& operator<<(std::ostream& os, const VarAssignStatement& s);
+    std::ostream& operator<<(std::ostream& os, const Expression& s);
+    std::ostream& operator<<(std::ostream& os, const IfCondStatement& s);
+    std::ostream& operator<<(std::ostream& os, const IfBlockStatement& s);
+} // namespace sl

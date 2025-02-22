@@ -45,7 +45,8 @@ namespace sl
 
     std::ostream &operator<<(std::ostream &os, const Token &t)
     {
-        return os << std::left << std::setw(15) << tokenTypeName.at(t.type) << " " << t.text;
+        //return os << std::left << std::setw(20) << "[ " << tokenTypeName.at(t.type) << " " << t.text << " ]";
+        return os << "[ " << tokenTypeName.at(t.type) << " " << t.text << " ]";
     }
 
     Tokens tokenize(const std::string &src)
@@ -82,14 +83,18 @@ namespace sl
                 while (it != src.cend() && *it != '\n')
                     it++;
             }
-            else if (std::isspace(*it) || *it == ';')
+            else if (std::isspace(*it))
             {
                 it++;
             }
             // * and / are not supported
-            else if (*it == '+' || *it == '-' || *it == '*' || *it == '/')
+            else if (*it == '+' || *it == '-')
             {
                 tokens.emplace_back(TokenType::BinaryOperator, *it++);
+            }
+            else if (*it == ';')
+            {
+                tokens.emplace_back(TokenType::SEMICOLON, *it++);
             }
             else if (*it == '=')
             {

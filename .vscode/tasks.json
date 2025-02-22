@@ -8,7 +8,7 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",                  // Add debug symbols
-                "-std=c++17",          // Use C++17 standard
+                "-std=c++2a",          // Use C++17 standard
                 "${workspaceFolder}/src/*.cpp",  // Compile all cpp files in the src folder
                 "-o",
                 "${workspaceFolder}/bin/SLBackend"  // Output the executable to the bin folder

@@ -14,11 +14,14 @@ int main()
     std::string src = strStream.str();
     file.close();
 
-    sl::Parser parser(src);
-    sl::Program program = parser.produceAST();
-    std::cout << program;
+    // sl::Parser parser(src);
+    // sl::Program program = parser.produceAST();
+    // std::cout << program;
 
-    //sl::Tokens tokens = sl::tokenize(src);
+    sl::Tokens tokens = sl::tokenize(src);
+    sl::Program program{ std::span<sl::Token>(tokens) };
+    const std::string asm_ = program.getAsm();
+    std::cout << asm_;
     //sl::print(tokens);
 
     return 0;
