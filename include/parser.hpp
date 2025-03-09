@@ -121,6 +121,7 @@ namespace sl
 
 namespace sl
 {
+    class Program;
 
     class Statement
     {
@@ -182,16 +183,19 @@ namespace sl
 
     public:
         IfCondStatement(const uint32_t id, std::span<Token> tokens, Expression expr);
+        std::string getAsm();
     };
 
     class IfBlockStatement : public Statement
     {
     public:
         const uint32_t id;
-        std::vector< std::unique_ptr<Statement>> body;
+        //std::vector< std::unique_ptr<Statement>> body;
+        std::unique_ptr<Program> subProgram;
 
     public:
-        IfBlockStatement(const uint32_t id, std::span<Token> tokens, std::vector< std::unique_ptr<Statement>>&& body);
+        IfBlockStatement(const uint32_t id, std::span<Token> tokens, std::unique_ptr<Program> subProgram /*std::vector< std::unique_ptr<Statement>>&& body*/);
+        std::string getAsm();
     };
 
     class Program
@@ -202,15 +206,15 @@ namespace sl
         uint32_t identCount = 0;
         uint32_t ifCount = 0;
         std::string resultedAsm;
-
+        bool mParsed = false;
     private:
         void parse();
 
     public:
         Program(std::span<Token> tokens, uint32_t ifCountStart = 0);
-        std::string getAsm();
+        std::string getAsm(bool isSubProgram = false);
         void print();
-        std::vector<std::unique_ptr<Statement>>&& moveOutStatements();
+        //std::vector<std::unique_ptr<Statement>>&& moveOutStatements();
     };
 
 

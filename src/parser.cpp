@@ -257,9 +257,30 @@ namespace sl
     {
     }
 
-    IfBlockStatement::IfBlockStatement(const uint32_t id, std::span<Token> tokens, std::vector< std::unique_ptr<Statement>>&& body)
-        : Statement(Type::IfBlock, tokens), id(id), body(std::move(body))
+    std::string IfCondStatement::getAsm()
     {
+        std::string res;
+        std::string strId = std::to_string(id);
+
+        res += expr.getAsm() + '\n';
+        res += std::string("ldi B 0")     + '\n';
+        res += std::string("cmp")     + '\n';
+        res += std::string("je %if_") + strId + '\n';
+
+         return res;
+    }
+
+    IfBlockStatement::IfBlockStatement(const uint32_t id, std::span<Token> tokens, std::unique_ptr<Program> subProgram )
+        : Statement(Type::IfBlock, tokens), id(id), subProgram(std::move(subProgram))//body(std::move(body))
+    {
+    }
+
+    std::string IfBlockStatement::getAsm()
+    {
+
+        return
+            subProgram->getAsm(true) + "\n"
+            + "if_" + std::to_string(id) + ": \n";
     }
 
     Program::Program(std::span<Token> tokens, uint32_t ifCountStart)
@@ -269,6 +290,9 @@ namespace sl
 
     void Program::parse()
     {
+        if (mParsed)
+            return;
+        mParsed = true;
         auto tIt = tokens.begin(); // Token Iterator
         auto sIt = tIt;            // Start Statement Iterator
         while (tIt != tokens.end())
@@ -294,9 +318,10 @@ namespace sl
                 while (tIt->type != TokenType::CLOSEDCURLY)
                     tIt++;
 
-                Program subProgram{ std::span(sIt, tIt), ifCount+1 };
-                subProgram.parse();
-                statements.push_back(std::make_unique<IfBlockStatement>(ifCount, std::span(sIt - 1, tIt + 1), subProgram.moveOutStatements()));
+                //Program subProgram{ std::span(sIt, tIt), ifCount+1 };
+                auto subProgram = std::make_unique<Program>(std::span(sIt, tIt), ifCount + 1);
+                subProgram->parse();
+                statements.push_back(std::make_unique<IfBlockStatement>(ifCount, std::span(sIt - 1, tIt + 1), std::move(subProgram)));
 
                 sIt = tIt + 1;
             }
@@ -338,33 +363,45 @@ namespace sl
         }
     }
 
-    std::string Program::getAsm()
+    std::string Program::getAsm(bool isSubProgram)
     {
         parse();
         print();
 
-        std::string textSection = R"(
+        std::string textSection;
+        if(!isSubProgram)
+            textSection += R"(
 .text
 start:
 
 )";
 
-        std::string dataSection = ".data\n\n";
+        std::string dataSection;
+        if(!isSubProgram)
+            dataSection = ".data\n\n";
 
         for (const auto& s : statements)
         {
             switch(s->type)
             {
             case Statement::Type::VarDec:
-                dataSection += static_cast<VarDecStatement*>(s.get())->getAsm();
+                if(!isSubProgram)
+                    dataSection += static_cast<VarDecStatement*>(s.get())->getAsm();
                 break;
             case Statement::Type::VarAssign:
                 textSection += static_cast<VarAssignStatement*>(s.get())->getAsm();
+                break;
+            case Statement::Type::IfCond:
+                textSection += static_cast<IfCondStatement*>(s.get())->getAsm();
+                break;
+            case Statement::Type::IfBlock:
+                textSection += static_cast<IfBlockStatement*>(s.get())->getAsm();
                 break;
             }
 
         }
 
+        if(!isSubProgram)
         textSection += R"(
 hlt
 
@@ -413,10 +450,10 @@ eqeqeq:
         printStatements(std::span(statements));
     }
 
-    std::vector<std::unique_ptr<Statement>>&& Program::moveOutStatements()
+   /* std::vector<std::unique_ptr<Statement>>&& Program::moveOutStatements()
     {
         return std::move(statements);
-    }
+    }*/
 
     Expression::Expression(std::span<Token> tokens)
         :Statement(Type::Expr, tokens)
@@ -500,7 +537,9 @@ eqeqeq:
     std::ostream& operator<<(std::ostream& os, const IfBlockStatement& s)
     {
         os << "IfBlockStatement (" << s.id <<") {\n";
-        printStatements(std::span(* const_cast<std::vector<std::unique_ptr<Statement>>*>(&s.body)));
+        //printStatements(std::span(* const_cast<std::vector<std::unique_ptr<Statement>>*>(&s.body)));
+        // TODO
+        os << s.subProgram;
         return os << "\n}";
     }
 
